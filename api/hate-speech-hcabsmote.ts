@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import fetch from 'node-fetch';
 
 const handler = async (req: VercelRequest, res: VercelResponse) => {
 	if (req.method === "OPTIONS") {
@@ -16,10 +17,11 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
 	try {
 		const data = req.body;
 		const hateSpeechApi = process.env.HATE_SPEECH_HCABSMOTE_API;
+		
 		if (!hateSpeechApi) {
 			throw new Error("HATE_SPEECH_HCABSMOTE_API environment variable is not set.");
 		}
-
+		
 		const response = await fetch(hateSpeechApi, {
 			headers: {
 				"Content-Type": "application/json"
@@ -27,13 +29,18 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
 			method: "POST",
 			body: JSON.stringify(data)
 		});
+		
+		if (!response.ok) {
+			// Log the full response text if the request fails
+			const errorText = await response.text();
+			throw new Error(`API request failed with status ${response.status}, Response: ${errorText}`);
+		}
 
 		const result = await response.json();
 
 		return res.status(200).json(result);
 	} catch (error) {
-		console.error("Error querying:", error);
-		return res.status(500).json({ error: `Internal server error: ${error}` });
+		return res.status(500).json({ error: `Internal server error: ${error.message}` });
 	}
 }
 
